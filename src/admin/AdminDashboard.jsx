@@ -15,7 +15,9 @@ function AdminDashboard() {
      API
   ================================= */
 
-  const API_BASE_URL = "https://aims-academy-backend-production-a580.up.railway.app/api";
+  const API_BASE_URL =
+    "https://aims-academy-backend-production-a580.up.railway.app/api";
+
   /* =================================
      DASHBOARD DATA
   ================================= */
@@ -368,28 +370,64 @@ function AdminDashboard() {
   };
 
   /* =================================
-     LOAD RESULTS
+     LOAD RESULTS FROM MONGODB
   ================================= */
 
-  const loadResults = () => {
-    let resultRecords = [];
-
+  const loadResults = async () => {
     try {
-      const savedResults =
-        localStorage.getItem(
-          "aims_results"
+      const token = localStorage.getItem("adminToken");
+
+      if (!token) {
+        setTotalResults(0);
+        return;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/results`,
+        {
+          method: "GET",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Results request failed: ${response.status}`
         );
+      }
 
-      resultRecords = savedResults
-        ? JSON.parse(savedResults)
-        : [];
-    } catch {
-      resultRecords = [];
+      const data = await response.json();
+
+      console.log(
+        "Dashboard results API response:",
+        data
+      );
+
+      /* ---------------------------------
+         SUPPORT THE POSSIBLE API FORMATS
+      --------------------------------- */
+
+      let resultRecords = [];
+
+      if (Array.isArray(data.results)) {
+        resultRecords = data.results;
+      } else if (Array.isArray(data.data)) {
+        resultRecords = data.data;
+      } else if (Array.isArray(data)) {
+        resultRecords = data;
+      }
+
+      setTotalResults(
+        resultRecords.length
+      );
+    } catch (error) {
+      console.error(
+        "Dashboard results error:",
+        error
+      );
+
+      setTotalResults(0);
     }
-
-    setTotalResults(
-      resultRecords.length
-    );
   };
 
   /* =================================
@@ -406,7 +444,7 @@ function AdminDashboard() {
 
     await loadFees();
 
-    loadResults();
+    await loadResults();
   };
 
   /* =================================

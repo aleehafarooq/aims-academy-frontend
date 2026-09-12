@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 
 function Results() {
+  const API_BASE_URL =
+    "https://aims-academy-backend-production-a580.up.railway.app/api";
+
   const [results, setResults] = useState([]);
   const [students, setStudents] = useState([]);
 
@@ -37,16 +40,19 @@ function Results() {
     notes: "",
   });
 
-  const token = localStorage.getItem("adminToken");
-
   /* =================================
      API HEADERS
   ================================= */
 
-  const getHeaders = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  });
+  const getHeaders = () => {
+    const currentToken =
+      localStorage.getItem("adminToken");
+
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentToken}`,
+    };
+  };
 
   /* =================================
      FETCH STUDENTS
@@ -55,28 +61,77 @@ function Results() {
   const fetchStudents = async () => {
     try {
       setStudentsLoading(true);
+      setError("");
+
+      const currentToken =
+        localStorage.getItem("adminToken");
+
+      if (!currentToken) {
+        setError(
+          "Your admin session has expired. Please log in again."
+        );
+        return;
+      }
 
       const response = await fetch(
-        "https://aims-academy-backend-production-a580.up.railway.app/api/students",
+        `${API_BASE_URL}/students`,
         {
+          method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${currentToken}`,
           },
         }
       );
 
       const data = await response.json();
 
-      if (!response.ok) {
+      console.log(
+        "Results page students API response:",
+        data
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminLoggedIn");
+        localStorage.removeItem("adminInfo");
+
+        setError(
+          "Your admin session has expired. Please log in again."
+        );
+
+        return;
+      }
+
+      if (!response.ok || !data.success) {
         throw new Error(
-          data.message || "Failed to fetch students."
+          data.message ||
+            "Failed to fetch students."
         );
       }
 
-      setStudents(data.students || data.data || []);
+      const loadedStudents =
+        Array.isArray(data.students)
+          ? data.students
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
+
+      console.log(
+        "Results page loaded students:",
+        loadedStudents
+      );
+
+      setStudents(loadedStudents);
     } catch (error) {
-      console.error("Fetch students error:", error);
-      setError(error.message);
+      console.error(
+        "Fetch students error:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Unable to load students from the database."
+      );
     } finally {
       setStudentsLoading(false);
     }
@@ -89,33 +144,78 @@ function Results() {
   const fetchResults = async () => {
     try {
       setLoading(true);
-      setError("");
+
+      const currentToken =
+        localStorage.getItem("adminToken");
+
+      if (!currentToken) {
+        setError(
+          "Your admin session has expired. Please log in again."
+        );
+        return;
+      }
 
       const response = await fetch(
-        "https://aims-academy-backend-production-a580.up.railway.app/api/results",
+        `${API_BASE_URL}/results`,
         {
+          method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${currentToken}`,
           },
         }
       );
 
       const data = await response.json();
 
+      console.log(
+        "Results API response:",
+        data
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminLoggedIn");
+        localStorage.removeItem("adminInfo");
+
+        setError(
+          "Your admin session has expired. Please log in again."
+        );
+
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to fetch results."
+          data.message ||
+            "Failed to fetch results."
         );
       }
 
-      setResults(data.results || data.data || []);
+      setResults(
+        Array.isArray(data.results)
+          ? data.results
+          : Array.isArray(data.data)
+          ? data.data
+          : []
+      );
     } catch (error) {
-      console.error("Fetch results error:", error);
-      setError(error.message);
+      console.error(
+        "Fetch results error:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Unable to load results."
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  /* =================================
+     INITIAL LOAD
+  ================================= */
 
   useEffect(() => {
     fetchStudents();
@@ -128,7 +228,8 @@ function Results() {
 
   const getStudent = (studentId) => {
     return students.find(
-      (student) => student.studentId === studentId
+      (student) =>
+        student.studentId === studentId
     );
   };
 
@@ -168,7 +269,9 @@ function Results() {
         "6th",
         "7th",
         "8th",
-      ].some((item) => className.includes(item))
+      ].some((item) =>
+        className.includes(item)
+      )
     ) {
       return [
         "English",
@@ -202,13 +305,17 @@ function Results() {
       ];
 
       if (
-        student.optionalSubject === "Biology"
+        String(
+          student.optionalSubject || ""
+        ).toLowerCase() === "biology"
       ) {
         subjects.push("Biology");
       }
 
       if (
-        student.optionalSubject === "Computer"
+        String(
+          student.optionalSubject || ""
+        ).toLowerCase() === "computer"
       ) {
         subjects.push("Computer");
       }
@@ -256,6 +363,10 @@ function Results() {
       return subjects;
     }
 
+    /* =================================
+       DATABASE SUBJECTS FALLBACK
+    ================================= */
+
     if (
       Array.isArray(student.subjects) &&
       student.subjects.length > 0
@@ -291,8 +402,8 @@ function Results() {
       return "Fail";
     }
 
-    const hasFailedSubject = subjects.some(
-      (subject) => {
+    const hasFailedSubject =
+      subjects.some((subject) => {
         const totalMarks = Number(
           subject.totalMarks || 0
         );
@@ -309,8 +420,7 @@ function Results() {
           (obtainedMarks / totalMarks) * 100 <
           40
         );
-      }
-    );
+      });
 
     return hasFailedSubject
       ? "Fail"
@@ -414,6 +524,9 @@ function Results() {
     setStudentSearch("");
     setError("");
     setShowModal(true);
+
+    /* Refresh students whenever Add Result opens */
+    fetchStudents();
   };
 
   /* =================================
@@ -429,14 +542,24 @@ function Results() {
 
     setFormData({
       studentId: result.studentId,
-      examName: result.examName,
-      examYear: result.examYear,
+      examName:
+        result.examName ||
+        result.examination ||
+        "Monthly Test",
+      examYear:
+        result.examYear ||
+        result.year ||
+        new Date()
+          .getFullYear()
+          .toString(),
       subjects: (
         result.subjects || []
       ).map((subject) => ({
         name: subject.name,
         totalMarks:
-          Number(subject.totalMarks || 0),
+          Number(
+            subject.totalMarks || 0
+          ),
         obtainedMarks:
           Number(
             subject.obtainedMarks || 0
@@ -521,6 +644,20 @@ function Results() {
       return;
     }
 
+    if (!formData.examName) {
+      setError(
+        "Please select an examination."
+      );
+      return;
+    }
+
+    if (!formData.examYear) {
+      setError(
+        "Please enter the examination year."
+      );
+      return;
+    }
+
     if (!formData.subjects.length) {
       setError(
         "No subjects are available for this student."
@@ -563,12 +700,22 @@ function Results() {
           result.studentId ===
           formData.studentId;
 
+        const existingExam =
+          result.examName ||
+          result.examination ||
+          "";
+
+        const existingYear =
+          result.examYear ||
+          result.year ||
+          "";
+
         const isSameExam =
-          result.examName ===
+          existingExam ===
           formData.examName;
 
         const isSameYear =
-          String(result.examYear) ===
+          String(existingYear) ===
           String(formData.examYear);
 
         const isCurrentResult =
@@ -591,40 +738,81 @@ function Results() {
       return;
     }
 
+    /* =================================
+       GENERATE RESULT ID
+    ================================= */
+
+    const resultId =
+      editingResult?.resultId ||
+      `RES-${Date.now()}`;
+
+    /* =================================
+       BACKEND PAYLOAD
+    ================================= */
+
     const payload = {
-      studentId: formData.studentId,
-      examName: formData.examName,
-      examYear: formData.examYear,
-      subjects: formData.subjects.map(
-        (subject) => ({
-          name: subject.name,
-          totalMarks:
-            Number(
-              subject.totalMarks
-            ),
-          obtainedMarks:
-            Number(
-              subject.obtainedMarks
-            ),
-        })
-      ),
+      resultId,
+
+      studentId:
+        formData.studentId,
+
+      /* Frontend field */
+      examName:
+        formData.examName,
+
+      examYear:
+        formData.examYear,
+
+      /* Backend required fields */
+      examination:
+        formData.examName,
+
+      year:
+        Number(formData.examYear),
+
+      subjects:
+        formData.subjects.map(
+          (subject) => ({
+            name: subject.name,
+            totalMarks:
+              Number(
+                subject.totalMarks
+              ),
+            obtainedMarks:
+              Number(
+                subject.obtainedMarks
+              ),
+          })
+        ),
+
       totalMarks:
         calculatedResult.totalMarks,
+
       obtainedMarks:
         calculatedResult.obtainedMarks,
+
       percentage:
         calculatedResult.percentage,
+
       grade:
         calculatedResult.grade,
+
       status:
         calculatedResult.status,
-      notes: formData.notes.trim(),
+
+      notes:
+        formData.notes.trim(),
     };
+
+    console.log(
+      "Saving result payload:",
+      payload
+    );
 
     try {
       const url = editingResult
-        ? `https://aims-academy-backend-production-a580.up.railway.app/api/results/${editingResult.resultId}`
-        : "https://aims-academy-backend-production-a580.up.railway.app/api/results";
+        ? `${API_BASE_URL}/results/${editingResult.resultId}`
+        : `${API_BASE_URL}/results`;
 
       const method = editingResult
         ? "PUT"
@@ -636,7 +824,29 @@ function Results() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data =
+        await response.json();
+
+      console.log(
+        "Save result API response:",
+        data
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem(
+          "adminToken"
+        );
+        localStorage.removeItem(
+          "adminLoggedIn"
+        );
+        localStorage.removeItem(
+          "adminInfo"
+        );
+
+        throw new Error(
+          "Your admin session has expired. Please log in again."
+        );
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -656,7 +866,10 @@ function Results() {
         error
       );
 
-      setError(error.message);
+      setError(
+        error.message ||
+          "Failed to save result."
+      );
     }
   };
 
@@ -683,16 +896,35 @@ function Results() {
 
     try {
       const response = await fetch(
-        `https://aims-academy-backend-production-a580.up.railway.app/api/results/${result.resultId}`,
+        `${API_BASE_URL}/results/${result.resultId}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              "adminToken"
+            )}`,
           },
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem(
+          "adminToken"
+        );
+        localStorage.removeItem(
+          "adminLoggedIn"
+        );
+        localStorage.removeItem(
+          "adminInfo"
+        );
+
+        throw new Error(
+          "Your admin session has expired. Please log in again."
+        );
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -716,7 +948,10 @@ function Results() {
         error
       );
 
-      window.alert(error.message);
+      window.alert(
+        error.message ||
+          "Failed to delete result."
+      );
     }
   };
 
@@ -793,7 +1028,8 @@ function Results() {
       })
       .join("");
 
-    const printDocument = iframe.contentWindow.document;
+    const printDocument =
+      iframe.contentWindow.document;
 
     printDocument.open();
 
@@ -949,9 +1185,17 @@ function Results() {
             </div>
 
             <div class="exam">
-              ${selectedResult.examName}
+              ${
+                selectedResult.examName ||
+                selectedResult.examination ||
+                ""
+              }
               -
-              ${selectedResult.examYear}
+              ${
+                selectedResult.examYear ||
+                selectedResult.year ||
+                ""
+              }
             </div>
           </div>
 
@@ -1128,14 +1372,6 @@ function Results() {
         ""
       );
 
-    /* =================================
-       PAKISTANI NUMBER FORMAT
-
-       03XXXXXXXXX
-       ↓
-       923XXXXXXXXX
-    ================================= */
-
     if (
       phoneNumber.startsWith("03")
     ) {
@@ -1143,10 +1379,6 @@ function Results() {
         "92" +
         phoneNumber.substring(1);
     }
-
-    /* =================================
-       SUBJECT-WISE RESULT
-    ================================= */
 
     const subjectLines = (
       selectedResult.subjects || []
@@ -1175,10 +1407,6 @@ function Results() {
       })
       .join("\n");
 
-    /* =================================
-       RESULT MESSAGE
-    ================================= */
-
     const message = `
 *AIMS ACADEMY*
 ━━━━━━━━━━━━━━━━━━
@@ -1189,8 +1417,16 @@ function Results() {
 🆔 Student ID: ${selectedResult.studentId}
 🏫 Class: ${student.className || "N/A"}
 
-📝 Examination: ${selectedResult.examName}
-📅 Year: ${selectedResult.examYear}
+📝 Examination: ${
+      selectedResult.examName ||
+      selectedResult.examination ||
+      "N/A"
+    }
+📅 Year: ${
+      selectedResult.examYear ||
+      selectedResult.year ||
+      "N/A"
+    }
 
 ━━━━━━━━━━━━━━━━━━
 *SUBJECT PERFORMANCE*
@@ -1225,10 +1461,6 @@ This result has been issued by
 AIMS Academy Administration.
     `.trim();
 
-    /* =================================
-       OPEN WHATSAPP
-    ================================= */
-
     const whatsappUrl =
       `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
         message
@@ -1253,6 +1485,18 @@ AIMS Academy Administration.
       const search =
         searchTerm.toLowerCase();
 
+      const examName =
+        result.examName ||
+        result.examination ||
+        "";
+
+      const examYear =
+        String(
+          result.examYear ||
+            result.year ||
+            ""
+        );
+
       return (
         student?.name
           ?.toLowerCase()
@@ -1260,11 +1504,11 @@ AIMS Academy Administration.
         result.studentId
           ?.toLowerCase()
           .includes(search) ||
-        result.examName
-          ?.toLowerCase()
+        examName
+          .toLowerCase()
           .includes(search) ||
-        result.examYear
-          ?.toLowerCase()
+        examYear
+          .toLowerCase()
           .includes(search)
       );
     });
@@ -1276,14 +1520,22 @@ AIMS Academy Administration.
   const filteredStudents =
     students.filter((student) => {
       const search =
-        studentSearch.toLowerCase();
+        studentSearch
+          .toLowerCase()
+          .trim();
+
+      if (!search) {
+        return true;
+      }
 
       return (
-        student.name
-          ?.toLowerCase()
+        String(student.name || "")
+          .toLowerCase()
           .includes(search) ||
-        student.studentId
-          ?.toLowerCase()
+        String(
+          student.studentId || ""
+        )
+          .toLowerCase()
           .includes(search)
       );
     });
@@ -1387,7 +1639,9 @@ AIMS Academy Administration.
 
           <div>
             <span>Total Results</span>
-            <strong>{totalResults}</strong>
+            <strong>
+              {totalResults}
+            </strong>
           </div>
         </div>
 
@@ -1398,7 +1652,9 @@ AIMS Academy Administration.
 
           <div>
             <span>Passed</span>
-            <strong>{passedResults}</strong>
+            <strong>
+              {passedResults}
+            </strong>
           </div>
         </div>
 
@@ -1409,7 +1665,9 @@ AIMS Academy Administration.
 
           <div>
             <span>Failed</span>
-            <strong>{failedResults}</strong>
+            <strong>
+              {failedResults}
+            </strong>
           </div>
         </div>
 
@@ -1440,6 +1698,7 @@ AIMS Academy Administration.
 
           <div>
             <h2>Result Records</h2>
+
             <p>
               All student results stored
               in MongoDB.
@@ -1447,6 +1706,7 @@ AIMS Academy Administration.
           </div>
 
           <div className="results-record-search">
+
             <Search size={18} />
 
             <input
@@ -1459,17 +1719,22 @@ AIMS Academy Administration.
                 )
               }
             />
+
           </div>
 
         </div>
 
         {loading ? (
           <div className="results-empty-state">
+
             <div className="results-empty-icon">
               <GraduationCap size={30} />
             </div>
 
-            <h3>Loading results...</h3>
+            <h3>
+              Loading results...
+            </h3>
+
           </div>
         ) : filteredResults.length ===
           0 ? (
@@ -1479,7 +1744,9 @@ AIMS Academy Administration.
               <GraduationCap size={30} />
             </div>
 
-            <h3>No results found</h3>
+            <h3>
+              No results found
+            </h3>
 
             <p>
               Add an examination result
@@ -1555,11 +1822,17 @@ AIMS Academy Administration.
                         </td>
 
                         <td>
-                          {result.examName}
+                          {
+                            result.examName ||
+                            result.examination
+                          }
                         </td>
 
                         <td className="results-year">
-                          {result.examYear}
+                          {
+                            result.examYear ||
+                            result.year
+                          }
                         </td>
 
                         <td>
@@ -1692,7 +1965,9 @@ AIMS Academy Administration.
 
               <div className="results-form-section">
 
-                <h3>Student Information</h3>
+                <h3>
+                  Student Information
+                </h3>
 
                 <div className="results-form-grid">
 
@@ -1704,13 +1979,15 @@ AIMS Academy Administration.
 
                     <div className="results-student-search">
 
-                      <Search
-                        size={18}
-                      />
+                      <Search size={18} />
 
                       <input
                         type="text"
-                        placeholder="Search student..."
+                        placeholder={
+                          studentsLoading
+                            ? "Loading students..."
+                            : "Search student..."
+                        }
                         value={
                           studentSearch
                         }
@@ -1723,7 +2000,8 @@ AIMS Academy Administration.
                           );
                         }}
                         disabled={
-                          !!editingResult
+                          !!editingResult ||
+                          studentsLoading
                         }
                       />
 
@@ -1733,8 +2011,13 @@ AIMS Academy Administration.
                       studentSearch && (
                         <div className="results-student-dropdown">
 
-                          {filteredStudents.length ===
-                          0 ? (
+                          {studentsLoading ? (
+                            <div className="results-dropdown-empty">
+                              Loading
+                              students...
+                            </div>
+                          ) : filteredStudents.length ===
+                            0 ? (
                             <div className="results-dropdown-empty">
                               No students
                               found.
@@ -1779,6 +2062,7 @@ AIMS Academy Administration.
                                         }
                                       </span>
                                     </div>
+
                                   </button>
                                 )
                               )
@@ -1794,7 +2078,8 @@ AIMS Academy Administration.
                           {
                             getStudent(
                               formData.studentId
-                            )?.name
+                            )?.name ||
+                            "Unknown Student"
                           }
                         </strong>
 
@@ -1924,6 +2209,7 @@ AIMS Academy Administration.
                 <div className="results-marks-table">
 
                   <div className="results-marks-header">
+
                     <span>
                       Subject
                     </span>
@@ -1935,6 +2221,7 @@ AIMS Academy Administration.
                     <span>
                       Obtained Marks
                     </span>
+
                   </div>
 
                   {formData.subjects.map(
@@ -2163,11 +2450,13 @@ AIMS Academy Administration.
 
                   <p>
                     {
-                      selectedResult.examName
+                      selectedResult.examName ||
+                      selectedResult.examination
                     }{" "}
                     -{" "}
                     {
-                      selectedResult.examYear
+                      selectedResult.examYear ||
+                      selectedResult.year
                     }
                   </p>
                 </div>
@@ -2323,6 +2612,7 @@ AIMS Academy Administration.
                 <div className="results-details-table">
 
                   <div className="results-details-table-header">
+
                     <span>
                       Subject
                     </span>
@@ -2338,6 +2628,7 @@ AIMS Academy Administration.
                     <span>
                       Percentage
                     </span>
+
                   </div>
 
                   {(
@@ -2376,6 +2667,7 @@ AIMS Academy Administration.
                             subject.name
                           }
                         >
+
                           <span>
                             {
                               subject.name
@@ -2400,6 +2692,7 @@ AIMS Academy Administration.
                             }
                             %
                           </span>
+
                         </div>
                       );
                     }
