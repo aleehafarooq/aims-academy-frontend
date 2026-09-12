@@ -1,0 +1,84 @@
+/* =========================================================
+   AIMS ACADEMY — GLOBAL THEME
+========================================================= */
+
+/* =========================================================
+   LIGHT MODE
+========================================================= */
+
+:root {
+  --primary-color: #198754;
+  --primary-dark: #146c43;
+  --primary-light: #d1e7dd;
+
+  --background-color: #ffffff;
+  --surface-color: #f8f9fa;
+
+  --text-color: #171717;
+  --text-muted: #6c757d;
+
+  --border-color: #dee2e6;
+
+  --shadow-color: rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-theme="dark"] {
+  --primary-color: #35b879;
+  --primary-dark: #2a9d68;
+  --primary-light: #173f2d;
+
+  --background-color: #0b1720;
+  --surface-color: #12232e;
+
+  --text-color: #f5f7f8;
+  --text-muted: #adb5bd;
+
+  --border-color: #263a46;
+
+  --shadow-color: rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================================================
+   GLOBAL THEME TRANSITION
+========================================================= */
+
+html,
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+
+/* =========================================================
+   DARK MODE SELECTION SUPPORT
+========================================================= */
+
+html[data-theme="dark"] {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+html[data-theme="light"] {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+
+/* =========================================================
+   SELECTION
+========================================================= */
+
+::selection {
+  background-color: var(--primary-light);
+  color: var(--text-color);
+}
