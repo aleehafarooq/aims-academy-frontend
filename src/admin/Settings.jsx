@@ -28,68 +28,195 @@ function Settings() {
   };
 
   /* =================================
-     LOAD SETTINGS
+     GET SAVED THEME
   ================================= */
 
-  const [settings, setSettings] = useState(() => {
-    const savedSettings =
-      localStorage.getItem("aims_settings");
-
-    let parsedSettings = {};
-
-    if (savedSettings) {
-      try {
-        parsedSettings = JSON.parse(savedSettings);
-      } catch {
-        parsedSettings = {};
-      }
-    }
-
+  const getSavedTheme = () => {
     const savedTheme =
       localStorage.getItem("aims_theme");
 
-    return {
-      ...defaultSettings,
-      ...parsedSettings,
-      theme:
-        savedTheme ||
-        parsedSettings.theme ||
-        "light",
-    };
-  });
+    if (
+      savedTheme === "dark" ||
+      savedTheme === "light"
+    ) {
+      return savedTheme;
+    }
 
-  const [saved, setSaved] = useState(false);
+    try {
+      const savedSettings =
+        localStorage.getItem("aims_settings");
+
+      if (savedSettings) {
+        const parsedSettings =
+          JSON.parse(savedSettings);
+
+        if (
+          parsedSettings.theme === "dark" ||
+          parsedSettings.theme === "light"
+        ) {
+          return parsedSettings.theme;
+        }
+      }
+    } catch {
+      // Ignore invalid saved settings
+    }
+
+    return "light";
+  };
 
   /* =================================
-     APPLY GLOBAL THEME
+     APPLY THEME GLOBALLY
   ================================= */
 
-  useEffect(() => {
-    const theme = settings.theme || "light";
+  const applyTheme = (theme) => {
+    const selectedTheme =
+      theme === "dark"
+        ? "dark"
+        : "light";
 
-    /* Apply theme to the entire application */
+    /* Apply to HTML */
 
     document.documentElement.setAttribute(
       "data-theme",
-      theme
+      selectedTheme
     );
 
-    /* Keep existing admin dark-mode
-       compatibility */
+    /* Apply to BODY for existing
+       admin compatibility */
 
-    if (theme === "dark") {
-      document.body.classList.add("dark-mode");
+    if (selectedTheme === "dark") {
+      document.body.classList.add(
+        "dark-mode"
+      );
     } else {
-      document.body.classList.remove("dark-mode");
+      document.body.classList.remove(
+        "dark-mode"
+      );
     }
 
-    /* Save theme immediately */
+    /* Save theme separately so the
+       entire application can use it */
 
     localStorage.setItem(
       "aims_theme",
-      theme
+      selectedTheme
     );
-  }, [settings.theme]);
+
+    /* Save a timestamp so other
+       parts of the application can
+       detect the latest theme change */
+
+    localStorage.setItem(
+      "aims_theme_updated_at",
+      Date.now().toString()
+    );
+
+    /* Notify components in the same tab */
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "aims-theme-change",
+        {
+          detail: {
+            theme: selectedTheme,
+          },
+        }
+      )
+    );
+
+    /* Notify other browser tabs */
+
+    window.dispatchEvent(
+      new StorageEvent(
+        "storage",
+        {
+          key: "aims_theme",
+          newValue: selectedTheme,
+          storageArea: localStorage,
+        }
+      )
+    );
+  };
+
+  /* =================================
+     LOAD SETTINGS
+  ================================= */
+
+  const [settings, setSettings] = useState(
+    () => {
+      const savedSettings =
+        localStorage.getItem(
+          "aims_settings"
+        );
+
+      let parsedSettings = {};
+
+      if (savedSettings) {
+        try {
+          parsedSettings =
+            JSON.parse(savedSettings);
+        } catch {
+          parsedSettings = {};
+        }
+      }
+
+      return {
+        ...defaultSettings,
+        ...parsedSettings,
+        theme: getSavedTheme(),
+      };
+    }
+  );
+
+  const [saved, setSaved] =
+    useState(false);
+
+  /* =================================
+     APPLY SAVED THEME WHEN SETTINGS
+     PAGE LOADS
+  ================================= */
+
+  useEffect(() => {
+    const currentTheme =
+      getSavedTheme();
+
+    applyTheme(currentTheme);
+
+    /* Keep Settings state synchronized
+       if another part of the application
+       changed the theme */
+
+    const handleThemeChange = (
+      event
+    ) => {
+      const newTheme =
+        event?.detail?.theme ||
+        localStorage.getItem(
+          "aims_theme"
+        ) ||
+        "light";
+
+      setSettings((previous) => ({
+        ...previous,
+        theme:
+          newTheme === "dark"
+            ? "dark"
+            : "light",
+      }));
+    };
+
+    window.addEventListener(
+      "aims-theme-change",
+      handleThemeChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "aims-theme-change",
+        handleThemeChange
+      );
+    };
+  }, []);
 
   /* =================================
      HANDLE INPUT
@@ -111,6 +238,15 @@ function Settings() {
           : value,
     }));
 
+    /* ---------------------------------
+       APPLY THEME IMMEDIATELY WHEN
+       THE USER CHANGES THE SELECT
+    --------------------------------- */
+
+    if (name === "theme") {
+      applyTheme(value);
+    }
+
     setSaved(false);
   };
 
@@ -119,39 +255,34 @@ function Settings() {
   ================================= */
 
   const handleSaveSettings = () => {
+    const finalSettings = {
+      ...settings,
+      theme:
+        settings.theme === "dark"
+          ? "dark"
+          : "light",
+    };
+
     /* Save complete settings */
 
     localStorage.setItem(
       "aims_settings",
-      JSON.stringify(settings)
+      JSON.stringify(
+        finalSettings
+      )
     );
 
-    /* Save theme separately */
+    /* Apply and save theme globally */
 
-    localStorage.setItem(
-      "aims_theme",
-      settings.theme
+    applyTheme(
+      finalSettings.theme
     );
 
-    /* Apply global theme */
+    /* Make sure React state contains
+       the exact saved values */
 
-    document.documentElement.setAttribute(
-      "data-theme",
-      settings.theme
-    );
-
-    /* Keep admin compatibility */
-
-    if (settings.theme === "dark") {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
-
-    /* Notify the rest of the application */
-
-    window.dispatchEvent(
-      new Event("aims-theme-change")
+    setSettings(
+      finalSettings
     );
 
     setSaved(true);
@@ -196,7 +327,6 @@ function Settings() {
 
       </div>
 
-
       {/* =================================
           SETTINGS CONTENT
       ================================= */}
@@ -229,7 +359,6 @@ function Settings() {
 
           </div>
 
-
           <div className="settings-form-grid">
 
             <div className="settings-form-group">
@@ -242,12 +371,15 @@ function Settings() {
                 id="academyName"
                 name="academyName"
                 type="text"
-                value={settings.academyName}
-                onChange={handleChange}
+                value={
+                  settings.academyName
+                }
+                onChange={
+                  handleChange
+                }
               />
 
             </div>
-
 
             <div className="settings-form-group">
 
@@ -260,11 +392,12 @@ function Settings() {
                 name="phone"
                 type="text"
                 value={settings.phone}
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
               />
 
             </div>
-
 
             <div className="settings-form-group">
 
@@ -277,11 +410,12 @@ function Settings() {
                 name="email"
                 type="email"
                 value={settings.email}
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
               />
 
             </div>
-
 
             <div className="settings-form-group">
 
@@ -293,8 +427,12 @@ function Settings() {
                 id="address"
                 name="address"
                 type="text"
-                value={settings.address}
-                onChange={handleChange}
+                value={
+                  settings.address
+                }
+                onChange={
+                  handleChange
+                }
               />
 
             </div>
@@ -302,7 +440,6 @@ function Settings() {
           </div>
 
         </div>
-
 
         {/* =================================
             APPEARANCE
@@ -329,7 +466,6 @@ function Settings() {
 
           </div>
 
-
           <div className="settings-option-group">
 
             <div className="settings-option-text">
@@ -345,11 +481,12 @@ function Settings() {
 
             </div>
 
-
             <select
               name="theme"
               value={settings.theme}
-              onChange={handleChange}
+              onChange={
+                handleChange
+              }
               className="settings-select"
             >
 
@@ -366,7 +503,6 @@ function Settings() {
           </div>
 
         </div>
-
 
         {/* =================================
             NOTIFICATIONS
@@ -393,7 +529,6 @@ function Settings() {
 
           </div>
 
-
           <div className="settings-toggle-list">
 
             <label className="settings-toggle-row">
@@ -415,11 +550,12 @@ function Settings() {
                 checked={
                   settings.emailNotifications
                 }
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
               />
 
             </label>
-
 
             <label className="settings-toggle-row">
 
@@ -440,7 +576,9 @@ function Settings() {
                 checked={
                   settings.newsNotifications
                 }
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
               />
 
             </label>
@@ -448,7 +586,6 @@ function Settings() {
           </div>
 
         </div>
-
 
         {/* =================================
             SECURITY
@@ -475,7 +612,6 @@ function Settings() {
 
           </div>
 
-
           <div className="settings-option-group">
 
             <div className="settings-option-text">
@@ -491,11 +627,14 @@ function Settings() {
 
             </div>
 
-
             <select
               name="sessionTimeout"
-              value={settings.sessionTimeout}
-              onChange={handleChange}
+              value={
+                settings.sessionTimeout
+              }
+              onChange={
+                handleChange
+              }
               className="settings-select"
             >
 
@@ -521,7 +660,6 @@ function Settings() {
 
         </div>
 
-
         {/* =================================
             SAVE
         ================================= */}
@@ -531,7 +669,9 @@ function Settings() {
           <button
             type="button"
             className="settings-save-button"
-            onClick={handleSaveSettings}
+            onClick={
+              handleSaveSettings
+            }
           >
 
             <Save size={17} />
