@@ -14913,6 +14913,10 @@ body {
 
   background: var(--primary-light);
   color: var(--primary-color);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 
@@ -14947,7 +14951,8 @@ body {
 
   border-radius: 16px;
 
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 6px 22px var(--shadow-color);
 
   transition:
     background-color 0.3s ease,
@@ -14983,6 +14988,10 @@ body {
 
   background: var(--primary-light);
   color: var(--primary-color);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .settings-card-header h2 {
@@ -15121,6 +15130,10 @@ body {
   border-radius: 12px;
 
   background: var(--background-color);
+
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 
@@ -15233,11 +15246,14 @@ body {
 
   background: var(--background-color);
 
+  color: var(--text-color);
+
   cursor: pointer;
 
   transition:
     background-color 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 
@@ -15345,7 +15361,7 @@ body {
   cursor: pointer;
 
   box-shadow:
-    0 5px 14px rgba(25, 135, 84, 0.18);
+    0 5px 14px var(--shadow-color);
 
   transition:
     transform 0.2s ease,
@@ -15363,7 +15379,7 @@ body {
   transform: translateY(-1px);
 
   box-shadow:
-    0 7px 18px rgba(25, 135, 84, 0.24);
+    0 7px 18px var(--shadow-color);
 }
 
 
@@ -15417,197 +15433,6 @@ body {
   border-color: var(--primary-color);
 
   color: var(--primary-color);
-}
-
-
-/* =========================================================
-   DARK MODE
-========================================================= */
-
-.dark-mode .settings-page {
-  color: var(--text-color);
-}
-
-
-/* Header */
-
-.dark-mode .settings-page .settings-header h1 {
-  color: #f3f4f6;
-}
-
-.dark-mode .settings-page .settings-description {
-  color: #9ca3af;
-}
-
-
-/* Header Icon */
-
-.dark-mode .settings-page .settings-header-icon {
-  background: var(--primary-light);
-
-  color: var(--primary-color);
-}
-
-
-/* Cards */
-
-.dark-mode .settings-page .settings-card {
-  background: #111827;
-
-  border-color: #374151;
-
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.18);
-}
-
-
-/* Card Header */
-
-.dark-mode .settings-page .settings-card-header h2 {
-  color: #f3f4f6;
-}
-
-.dark-mode .settings-page .settings-card-header p {
-  color: #9ca3af;
-}
-
-
-/* Labels */
-
-.dark-mode .settings-page .settings-form-group label {
-  color: #f3f4f6;
-}
-
-
-/* Inputs */
-
-.dark-mode .settings-page .settings-form-group input {
-  background: #1f2937;
-
-  color: #f3f4f6;
-
-  border-color: #374151;
-}
-
-.dark-mode .settings-page .settings-form-group input:focus {
-  background: #1f2937;
-
-  border-color: var(--primary-color);
-
-  box-shadow:
-    0 0 0 3px var(--primary-light);
-}
-
-.dark-mode .settings-page .settings-form-group input::placeholder {
-  color: #9ca3af;
-}
-
-
-/* Help Text */
-
-.dark-mode .settings-page .settings-form-group small {
-  color: #9ca3af;
-}
-
-
-/* Option Groups */
-
-.dark-mode .settings-page .settings-option-group {
-  background: #1f2937;
-
-  border-color: #374151;
-}
-
-
-/* Option Text */
-
-.dark-mode .settings-page .settings-option-text strong {
-  color: #f3f4f6;
-}
-
-.dark-mode .settings-page .settings-option-text span {
-  color: #9ca3af;
-}
-
-
-/* Select */
-
-.dark-mode .settings-page .settings-select {
-  background: #111827;
-
-  color: #f3f4f6;
-
-  border-color: #374151;
-}
-
-.dark-mode .settings-page .settings-select:focus {
-  border-color: var(--primary-color);
-
-  box-shadow:
-    0 0 0 3px var(--primary-light);
-}
-
-.dark-mode .settings-page .settings-select option {
-  background: #111827;
-
-  color: #f3f4f6;
-}
-
-
-/* Notification List */
-
-.dark-mode .settings-page .settings-toggle-list {
-  border-color: #374151;
-}
-
-
-/* Notification Rows */
-
-.dark-mode .settings-page .settings-toggle-row {
-  background: #1f2937;
-}
-
-.dark-mode .settings-page .settings-toggle-row + .settings-toggle-row {
-  border-top-color: #374151;
-}
-
-.dark-mode .settings-page .settings-toggle-row:hover {
-  background: #263244;
-}
-
-
-/* Notification Text */
-
-.dark-mode .settings-page .settings-toggle-row strong {
-  color: #f3f4f6;
-}
-
-.dark-mode .settings-page .settings-toggle-row span {
-  color: #9ca3af;
-}
-
-
-/* Checkbox */
-
-.dark-mode .settings-page .settings-toggle-row input[type="checkbox"] {
-  accent-color: var(--primary-color);
-}
-
-
-/* Reset */
-
-.dark-mode .settings-page .settings-reset-button {
-  background: #1f2937;
-
-  color: #f3f4f6;
-
-  border-color: #374151;
-}
-
-.dark-mode .settings-page .settings-reset-button:hover {
-  color: var(--primary-color);
-
-  border-color: var(--primary-color);
 }
 
 
